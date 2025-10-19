@@ -1,5 +1,5 @@
 Promise.all([
-    d3.csv('/data/Formula1_2022season_qualifyingResults.csv'),
+    d3.csv('./data/Formula1_2022season_qualifyingResults.csv'),
 ])
 .then(([quaily22]) => {
     quaily22.forEach(q => {
@@ -7,7 +7,7 @@ Promise.all([
         q.Position = q.Position === "NC" ? 20 : +q.Position;
     });
 
-    // Csapatok listája
+    // Csapatok listája asd
     const allTeams = [...new Set(quaily22.map(d => d.Team))];
 
     // Create a container for the visualization
