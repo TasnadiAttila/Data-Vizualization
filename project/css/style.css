@@ -14,3 +14,15 @@
 	fill: steelblue;
 	shape-rendering: crispEdges;
 }
+
+#team-select-container,
+#year-select-container,
+#view-toggle-container {
+	display: block;
+	margin: 6px 0;
+	text-align: center;
+}
+
+.tooltip {
+	pointer-events: none;
+}

@@ -1,14 +1,28 @@
 Promise.all([
     d3.csv('./data/Formula1_2022season_qualifyingResults.csv'),
+    d3.csv('./data/Formula1_2023season_qualifyingResults.csv'),
+    d3.csv('./data/Formula1_2024season_qualifyingResults.csv'),
+    d3.csv('./data/Formula1_2025season_qualifyingResults.csv'),
 ])
-.then(([quaily22]) => {
+.then(([quaily22, quaily23, quaily24, quaily25]) => {
     // --- Adatfeldolgozás ---
-    quaily22.forEach(q => {
-        q.Position = q.Position === "NC" ? 20 : +q.Position;
+    // Normalize numeric Position values and NC flags for all loaded datasets
+    const datasets = {
+        2022: quaily22,
+        2023: quaily23,
+        2024: quaily24,
+        2025: quaily25,
+    };
+
+    Object.values(datasets).forEach(ds => {
+        ds.forEach(q => {
+            // keep original raw value for tooltips/NC detection
+            q.originalPosition = q.Position;
+            q.Position = q.Position === "NC" ? 20 : +q.Position;
+        });
     });
 
-    const allTeams = [...new Set(quaily22.map(d => d.Team))];
-
+    let currentYear = 2022;
     let currentTeam = 'Ferrari';
     let isBarChart = false;
 
@@ -24,14 +38,28 @@ Promise.all([
         .style('margin-top', '5px');
 
     function updateTeamSelectorPosition() {
-        d3.select('#team-select-container')
-            .style('text-align', 'center')
-            .style('width', `${width}px`)
-            .style('margin', `0`);
+        // center the controls' parent so inline-block children are centered
+        d3.select('body').style('text-align', 'center');
 
+        d3.select('#team-select-container')
+            .style('display', 'inline-block')
+            .style('vertical-align', 'middle')
+            .style('text-align', 'left')
+            .style('width', null)
+            .style('margin', '0 8px');
+
+        d3.select('#year-select-container')
+            .style('display', 'inline-block')
+            .style('vertical-align', 'middle')
+            .style('text-align', 'left')
+            .style('width', null)
+            .style('margin', '0 8px');
+
+        // the toggle should be centered below the chart
         d3.select('#view-toggle-container')
-            .style('width', `${width}px`)
-            .style('margin-left', `230px`);
+            .style('display', 'block')
+            .style('text-align', 'center')
+            .style('margin', '12px auto');
     }
 
     function createTeamSelect() {
@@ -39,29 +67,56 @@ Promise.all([
             .attr('id', 'team-select-container')
             .style('margin-top', '20px');
 
+        teamSelectContainer.append('label')
+            .attr('for', 'team-select')
+            .style('margin-right', '8px')
+            .text('Select team:');
+
         const teamSelect = teamSelectContainer.append('select')
-            .attr('id', 'team-select');
+            .attr('id', 'team-select')
+            .style('width', '210px');
 
-        teamSelect.selectAll('option')
-            .data(allTeams)
-            .enter()
-            .append('option')
-            .attr('value', d => d)
-            .text(d => d);
+        // populate using current dataset
+        function populateTeamOptions() {
+            const ds = datasets[currentYear];
+            const teams = [...new Set(ds.map(d => d.Team))].sort();
 
-        teamSelect.property('value', currentTeam);
+            const options = teamSelect.selectAll('option')
+                .data(teams, d => d);
+
+            options.enter()
+                .append('option')
+                .attr('value', d => d)
+                .text(d => d);
+
+            options.exit().remove();
+
+            // Set selection to currentTeam if available, otherwise first team
+            if (!teams.includes(currentTeam)) {
+                currentTeam = teams[0] || '';
+            }
+
+            teamSelect.property('value', currentTeam);
+        }
 
         teamSelect.on('change', function() {
             currentTeam = this.value;
             updateGraph(currentTeam);
         });
 
+        populateTeamOptions();
+
+        // Expose helper to update later when year changes
+        createTeamSelect.populateTeamOptions = populateTeamOptions;
+
         updateTeamSelectorPosition();
     }
 
     function createViewToggle() {
-        const toggleContainer = body.insert('div', '#viz-container') 
-            .attr('id', 'view-toggle-container');
+        // append the toggle inside the viz container so it appears below the SVG
+        const toggleContainer = vizContainer.append('div')
+            .attr('id', 'view-toggle-container')
+            .style('padding-bottom', '20px');
 
         toggleContainer.append('input')
             .attr('type', 'checkbox')
@@ -74,13 +129,11 @@ Promise.all([
 
         toggleContainer.append('label')
             .attr('for', 'bar-chart-toggle')
-            .text(' Oszlopdiagram (Bar Chart) megjelenítése');
+            .text(' Switch between Line Chart and Bar Chart');
     }
 
-    const allTracks = [...new Set(quaily22.map(d => d.Track))];
-
     const x = d3.scalePoint()
-        .domain(allTracks)
+        .domain([])
         .range([margin.left, width - margin.right])
         .padding(0.5);
 
@@ -146,27 +199,64 @@ Promise.all([
         .style("font-size", "12px");
 
     function transformDataForGraph(team) {
-        const teamData = quaily22.filter(d => d.Team === team);
+        const ds = datasets[currentYear];
+        const teamData = ds.filter(d => d.Team === team);
         const driversGrouped = d3.group(teamData, d => d.Driver);
+
+        // determine track order for the selected year
+        const tracksThisYear = [...new Set(ds.map(d => d.Track))];
 
         return Array.from(driversGrouped, ([name, records]) => ({
             name,
             team: records[0].Team,
             data: records.map(r => {
-                const originalRecord = quaily22.find(rec => 
-                    rec.Track === r.Track && 
-                    rec.Driver === name && 
-                    rec.Team === team
-                );
-
+                // use preserved originalPosition on the same record
                 return {
                     Track: r.Track,
                     Position: r.Position,
-                    originalPosition: originalRecord.Position,
-                    isNC: r.Position === 20 && originalRecord.Position === "NC"
+                    originalPosition: r.originalPosition,
+                    isNC: r.originalPosition === "NC"
                 };
-            }).sort((a, b) => allTracks.indexOf(a.Track) - allTracks.indexOf(b.Track))
+            }).sort((a, b) => tracksThisYear.indexOf(a.Track) - tracksThisYear.indexOf(b.Track))
         }));
+    }
+
+    function createYearSelect() {
+        const yearSelectContainer = body.insert('div', '#team-select-container')
+            .attr('id', 'year-select-container')
+            .style('margin-top', '10px');
+
+        yearSelectContainer.append('label')
+            .attr('for', 'year-select')
+            .style('margin-right', '8px')
+            .text('Select Year:');
+
+        const yearSelect = yearSelectContainer.append('select')
+            .attr('id', 'year-select')
+            .style('width', '210px');
+
+        const years = Object.keys(datasets).map(y => +y).sort();
+
+        yearSelect.selectAll('option')
+            .data(years)
+            .enter()
+            .append('option')
+            .attr('value', d => d)
+            .text(d => d);
+
+        yearSelect.property('value', currentYear);
+
+        yearSelect.on('change', function() {
+            currentYear = +this.value;
+
+            // repopulate team options based on new year
+            if (createTeamSelect && createTeamSelect.populateTeamOptions) {
+                createTeamSelect.populateTeamOptions();
+            }
+
+            // reset x domain to tracks for new year (will be set in updateGraph)
+            updateGraph(currentTeam);
+        });
     }
 
     function createGraph(team) {
@@ -276,9 +366,11 @@ Promise.all([
     }
 
     // --- Inicializáció ---
-    createViewToggle();
+    createYearSelect();
     createTeamSelect();
     createGraph(currentTeam);
+    // create view toggle after the graph so it appears below the chart
+    createViewToggle();
 
     window.addEventListener('resize', updateTeamSelectorPosition);
 })
