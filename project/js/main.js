@@ -17,6 +17,7 @@ Promise.all([
     const margin = { top: 50, right: 50, bottom: 150, left: 50 };
 
     const body = d3.select('body');
+    body.style('width', `${width}px`);
 
     const vizContainer = body.append('div')
         .attr('id', 'viz-container')
