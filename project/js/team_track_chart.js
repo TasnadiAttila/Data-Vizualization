@@ -55,8 +55,7 @@
 
         function createTeamSelect() {
             const teamSelectContainer = teamPanel.append('div')
-                .attr('id', 'team-select-container')
-                .style('margin-top', '20px');
+                .attr('id', 'team-select-container');
 
             teamSelectContainer.append('label')
                 .attr('for', 'team-select-2')
