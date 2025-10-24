@@ -23,6 +23,44 @@
 	text-align: center;
 }
 
+.charts-row {
+	display: flex;
+	flex-direction: row;
+	gap: 16px;
+	justify-content: center;
+	align-items: flex-start;
+	padding: 12px;
+}
+
+.chart-panel {
+	flex: 1 1 480px;
+	min-width: 360px;
+	max-width: 900px;
+	border: 1px solid #e0e0e0;
+	padding: 8px 12px;
+	box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+	background: #fff;
+}
+
+/* Per-panel control layout: checkbox (view toggle) should appear above the chart;
+   selectors appear below the chart. The scripts will place elements in this order.
+*/
+.chart-panel #view-toggle-container {
+	order: 0;
+}
+.chart-panel svg {
+	display: block;
+	margin: 6px auto;
+}
+.chart-panel #team-select-container,
+.chart-panel #year-select-container {
+	order: 2;
+	display: flex;
+	justify-content: center;
+	gap: 8px;
+	margin-top: 8px;
+}
+
 .tooltip {
 	pointer-events: none;
 }

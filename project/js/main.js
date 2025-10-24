@@ -5,8 +5,6 @@ Promise.all([
     d3.csv('./data/Formula1_2025season_qualifyingResults.csv'),
 ])
 .then(([quaily22, quaily23, quaily24, quaily25]) => {
-    // --- Adatfeldolgozás ---
-    // Normalize numeric Position values and NC flags for all loaded datasets
     const datasets = {
         2022: quaily22,
         2023: quaily23,
@@ -16,7 +14,6 @@ Promise.all([
 
     Object.values(datasets).forEach(ds => {
         ds.forEach(q => {
-            // keep original raw value for tooltips/NC detection
             q.originalPosition = q.Position;
             q.Position = q.Position === "NC" ? 20 : +q.Position;
         });
@@ -30,10 +27,8 @@ Promise.all([
     const height = 400;
     const margin = { top: 50, right: 50, bottom: 150, left: 50 };
 
-    const body = d3.select('body');
-    body.style('width', `${width}px`);
-
-    const vizContainer = body.append('div')
+    const qualPanel = d3.select('#qualifying-panel');
+    const vizContainer = qualPanel.append('div')
         .attr('id', 'viz-container')
         .style('margin-top', '5px');
 
@@ -44,32 +39,21 @@ Promise.all([
 
 
     function updateTeamSelectorPosition() {
-        // center the controls' parent so inline-block children are centered
-        d3.select('body').style('text-align', 'center');
-
         d3.select('#team-select-container')
-            .style('display', 'inline-block')
-            .style('vertical-align', 'middle')
-            .style('text-align', 'left')
-            .style('width', null)
-            .style('margin', '0 8px');
+            .style('display', null)
+            .style('margin', null);
 
         d3.select('#year-select-container')
-            .style('display', 'inline-block')
-            .style('vertical-align', 'middle')
-            .style('text-align', 'left')
-            .style('width', null)
-            .style('margin', '0 8px');
+            .style('display', null)
+            .style('margin', null);
 
-        // the toggle should be centered below the chart
         d3.select('#view-toggle-container')
-            .style('display', 'block')
-            .style('text-align', 'center')
-            .style('margin', '12px auto');
+            .style('display', null)
+            .style('margin', null);
     }
 
     function createTeamSelect() {
-        const teamSelectContainer = body.append('div')
+        const teamSelectContainer = qualPanel.append('div')
             .attr('id', 'team-select-container')
             .style('margin-top', '20px');
 
@@ -82,7 +66,6 @@ Promise.all([
             .attr('id', 'team-select')
             .style('width', '210px');
 
-        // populate using current dataset
         function populateTeamOptions() {
             const ds = datasets[currentYear];
             const teams = [...new Set(ds.map(d => d.Team))].sort();
@@ -97,7 +80,6 @@ Promise.all([
 
             options.exit().remove();
 
-            // Set selection to currentTeam if available, otherwise first team
             if (!teams.includes(currentTeam)) {
                 currentTeam = teams[0] || '';
             }
@@ -112,17 +94,15 @@ Promise.all([
 
         populateTeamOptions();
 
-        // Expose helper to update later when year changes
         createTeamSelect.populateTeamOptions = populateTeamOptions;
 
         updateTeamSelectorPosition();
     }
 
     function createViewToggle() {
-        // append the toggle inside the viz container so it appears below the SVG
-        const toggleContainer = vizContainer.append('div')
+        const toggleContainer = vizContainer.insert('div', ':first-child')
             .attr('id', 'view-toggle-container')
-            .style('padding-bottom', '20px');
+            .style('padding-bottom', '6px');
 
         toggleContainer.append('input')
             .attr('type', 'checkbox')
@@ -147,7 +127,6 @@ Promise.all([
         .domain([20, 1])
         .range([height - margin.bottom, margin.top]);
 
-    // 🎨 Csapatszínek
     const teamColors = {
         "Ferrari": ['#DC0000', '#FF4F4F'],
         "Red Bull Racing RBPT": ['#1E41FF', '#FFB800'],
@@ -194,7 +173,7 @@ Promise.all([
         .style('fill', 'black')
         .style('font-size', '12px');
 
-    const tooltip = body.append("div")
+    const tooltip = d3.select('body').append("div")
         .attr('class', 'tooltip')
         .style("position", "absolute")
         .style("visibility", "hidden")
@@ -209,14 +188,12 @@ Promise.all([
         const teamData = ds.filter(d => d.Team === team);
         const driversGrouped = d3.group(teamData, d => d.Driver);
 
-        // determine track order for the selected year
         const tracksThisYear = [...new Set(ds.map(d => d.Track))];
 
         return Array.from(driversGrouped, ([name, records]) => ({
             name,
             team: records[0].Team,
             data: records.map(r => {
-                // use preserved originalPosition on the same record
                 return {
                     Track: r.Track,
                     Position: r.Position,
@@ -228,7 +205,7 @@ Promise.all([
     }
 
     function createYearSelect() {
-        const yearSelectContainer = body.insert('div', '#team-select-container')
+        const yearSelectContainer = qualPanel.append('div')
             .attr('id', 'year-select-container')
             .style('margin-top', '10px');
 
@@ -255,12 +232,10 @@ Promise.all([
         yearSelect.on('change', function() {
             currentYear = +this.value;
 
-            // repopulate team options based on new year
             if (createTeamSelect && createTeamSelect.populateTeamOptions) {
                 createTeamSelect.populateTeamOptions();
             }
 
-            // reset x domain to tracks for new year (will be set in updateGraph)
             updateGraph(currentTeam);
         });
     }
@@ -274,7 +249,7 @@ Promise.all([
         const driverNames = drivers.map(d => d.name);
 
         color.domain(driverNames);
-        color.range(teamColors[team] || ['#888', '#CCC']); // fallback színek
+        color.range(teamColors[team] || ['#888', '#CCC']);
 
         const currentTracks = [...new Set(drivers.flatMap(d => d.data.map(r => r.Track)))];
         x.domain(currentTracks);
@@ -371,11 +346,9 @@ Promise.all([
         updateTeamSelectorPosition();
     }
 
-    // --- Inicializáció ---
     createYearSelect();
     createTeamSelect();
     createGraph(currentTeam);
-    // create view toggle after the graph so it appears below the chart
     createViewToggle();
 
     window.addEventListener('resize', updateTeamSelectorPosition);
