@@ -37,6 +37,12 @@ Promise.all([
         .attr('id', 'viz-container')
         .style('margin-top', '5px');
 
+    vizContainer.append('label')
+            .attr('for', 'svg')
+            .style('margin-right', '8px')
+            .text('Qualifying Results');
+
+
     function updateTeamSelectorPosition() {
         // center the controls' parent so inline-block children are centered
         d3.select('body').style('text-align', 'center');
@@ -166,7 +172,7 @@ Promise.all([
         .attr('height', height - 50)
         .style('display', 'block')
         .style('margin', '0');
-
+    
     const linesGroup = svg.append('g').attr('class', 'lines-group');
     const dotsGroup = svg.append('g').attr('class', 'dots-group');
     const barsGroup = svg.append('g').attr('class', 'bars-group').style('visibility', 'hidden');
