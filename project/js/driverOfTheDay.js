@@ -12,7 +12,6 @@ Promise.all([
 
     let currentYear = 2022;
 
-
     const dotdPanel = d3.select("#driver-of-the-day-panel");
 
     const vizContainer = dotdPanel
