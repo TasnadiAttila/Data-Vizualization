@@ -12,9 +12,6 @@ Promise.all([
 
     let currentYear = 2022;
 
-    // Responsive dimensions
-    let chartWidth = 800;
-    let chartHeight = 450;
 
     const dotdPanel = d3.select("#driver-of-the-day-panel");
 
@@ -70,7 +67,9 @@ Promise.all([
       .append("svg")
       .attr("preserveAspectRatio", "xMidYMid meet")
       .style("display", "block")
-      .style("margin", "0 auto");
+      .style("margin", "0 auto")
+      .style("width", "546px")
+      .style("height", "420px");
 
     const g = svg.append("g");
 
@@ -89,13 +88,8 @@ Promise.all([
     const color = d3.scaleOrdinal(d3.schemeCategory10);
 
     function setDimensions() {
-      const panelNode = dotdPanel.node();
-      const panelWidth = panelNode
-        ? panelNode.getBoundingClientRect().width
-        : 400;
-      chartWidth = Math.max(300, Math.floor(panelWidth - 24));
-      chartHeight = chartWidth * 0.9;
-
+      chartWidth = 546;
+      chartHeight = 420;
       svg.attr("viewBox", `0 0 ${chartWidth} ${chartHeight}`);
     }
 
@@ -130,7 +124,7 @@ Promise.all([
       setDimensions();
 
       const data = aggregateDriverOfTheDay(currentYear);
-      const radius = Math.min(chartWidth, chartHeight) / 2 - 60;
+      const radius = Math.min(chartWidth, chartHeight) / 2 - 80;
 
       g.selectAll("*").remove();
 

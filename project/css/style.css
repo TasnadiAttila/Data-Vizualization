@@ -1,105 +1,119 @@
 /* Axes and bars */
 .axis path,
 .axis line {
-    fill: none;
-    stroke: #333;
-    shape-rendering: crispEdges;
+  fill: none;
+  stroke: #333;
+  shape-rendering: crispEdges;
 }
 
 .axis text {
-    font-family: sans-serif;
-    font-size: 11px;
+  font-family: sans-serif;
+  font-size: 11px;
 }
 
 .bar {
-    fill: steelblue;
-    shape-rendering: crispEdges;
+  fill: steelblue;
+  shape-rendering: crispEdges;
 }
 
 /* Selectors */
 #team-select-container,
 #year-select-container {
-    display: block;
-    margin: 6px 0;
-    text-align: center;
+  display: block;
+  margin: 6px 0;
+  text-align: center;
 }
 
 /* Layout */
 .charts-row {
-    display: flex;
-    flex-direction: row;
-    gap: 16px;
-    justify-content: center;
-    align-items: flex-start;
-    padding: 12px;
-    flex-wrap: wrap; /* allow wrapping on smaller widths */
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 12px;
+  flex-wrap: wrap; /* allow wrapping on smaller widths */
 }
 
 .chart-panel {
-    flex: 1 1 480px;
-    min-width: 320px;
-    max-width: 900px;
-    border: 1px solid #e0e0e0;
-    padding: 8px 12px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
-    background: #fff;
+  flex: 0 0 auto;
+  width: 570px;
+  height: 520px;
+  border: 1px solid #e0e0e0;
+  padding: 8px 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  background: #fff;
+}
+
+/* Driver of the Day panel: same size as other chart panels */
+#driver-of-the-day-panel {
+  flex: 0 0 auto;
+  width: 570px;
+  height: 520px;
+}
+
+/* Driver of the Day year selector centered */
+#dotd-year-select-container {
+  display: flex !important;
+  justify-content: center !important;
+  margin-top: 10px !important;
 }
 
 /* Per-panel control layout: selectors appear below the chart. */
 .chart-panel svg {
-    display: block;
-    margin: 6px auto;
-    width: 100%; /* make svg scale with panel width */
-    height: auto;
+  display: block;
+  margin: 6px auto;
+  width: 100%; /* make svg scale with panel width */
+  height: auto;
 }
 .chart-panel #team-select-container,
 .chart-panel #year-select-container {
-    order: 2;
-    display: flex;
-    justify-content: center;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-top: 8px;
+  order: 2;
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
 }
 
 /* Inputs */
 #team-select-container select,
 #year-select-container select {
-    width: min(210px, 100%);
+  width: min(210px, 100%);
 }
 
 .tooltip {
-    pointer-events: none;
+  pointer-events: none;
 }
 
 /* Medium screens */
 @media (max-width: 1024px) {
-    .chart-panel {
-        flex: 1 1 100%;
-        min-width: 0;
-    }
+  .chart-panel {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
 }
 
 /* Tablets */
 @media (max-width: 768px) {
-    .charts-row {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 12px;
-    }
-    .chart-panel {
-        width: 100%;
-        padding: 8px;
-    }
-    #team-select-container select,
-    #year-select-container select {
-        width: 100%;
-    }
+  .charts-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  .chart-panel {
+    width: 100%;
+    padding: 8px;
+  }
+  #team-select-container select,
+  #year-select-container select {
+    width: 100%;
+  }
 }
 
 /* Phones */
 @media (max-width: 480px) {
-    .chart-panel {
-        padding: 6px 8px;
-    }
+  .chart-panel {
+    padding: 6px 8px;
+  }
 }
