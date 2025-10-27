@@ -2,7 +2,8 @@ Promise.all([
     d3.csv('./data/Formula1_2022season_qualifyingResults.csv'),
     d3.csv('./data/Formula1_2023season_qualifyingResults.csv'),
     d3.csv('./data/Formula1_2024season_qualifyingResults.csv'),
-    d3.csv('./data/Formula1_2025season_qualifyingResults.csv'),
+    // Use title-cased filename to match actual file and avoid case issues
+    d3.csv('./data/Formula1_2025Season_QualifyingResults.csv'),
 ])
 .then(([quaily22, quaily23, quaily24, quaily25]) => {
     const datasets = {
@@ -21,11 +22,11 @@ Promise.all([
 
     let currentYear = 2022;
     let currentTeam = 'Ferrari';
-    let isBarChart = false;
 
-    const width = 800;
-    const height = 400;
-    const margin = { top: 50, right: 50, bottom: 150, left: 50 };
+    // Responsive dimensions
+    let chartWidth = 800;
+    let chartHeight = 400;
+    let margin = { top: 40, right: 24, bottom: 140, left: 48 };
 
     const qualPanel = d3.select('#qualifying-panel');
     const vizContainer = qualPanel.append('div')
@@ -120,12 +121,12 @@ Promise.all([
 
     const x = d3.scalePoint()
         .domain([])
-        .range([margin.left, width - margin.right])
+        .range([margin.left, chartWidth - margin.right])
         .padding(0.5);
 
     const y = d3.scaleLinear()
         .domain([20, 1])
-        .range([height - margin.bottom, margin.top]);
+        .range([chartHeight - margin.bottom, margin.top]);
 
     const teamColors = {
         "Ferrari": ['#DC0000', '#FF4F4F'],
@@ -142,32 +143,24 @@ Promise.all([
 
     const color = d3.scaleOrdinal();
 
-    const line = d3.line()
-        .x(d => x(d.Track))
-        .y(d => y(d.Position));
-
     const svg = vizContainer.append('svg')
-        .attr('width', width)
-        .attr('height', height - 50)
+        .attr('preserveAspectRatio', 'xMidYMid meet')
         .style('display', 'block')
         .style('margin', '0');
-    
-    const linesGroup = svg.append('g').attr('class', 'lines-group');
-    const dotsGroup = svg.append('g').attr('class', 'dots-group');
-    const barsGroup = svg.append('g').attr('class', 'bars-group').style('visibility', 'hidden');
+    const barsGroup = svg.append('g').attr('class', 'bars-group');
 
     const xAxisGroup = svg.append('g')
         .attr('class', 'x-axis')
-        .attr('transform', `translate(0, ${height - margin.bottom})`);
+        .attr('transform', `translate(0, ${chartHeight - margin.bottom})`);
 
     const yAxisGroup = svg.append('g')
         .attr('class', 'y-axis')
         .attr('transform', `translate(${margin.left}, 0)`);
 
-    yAxisGroup.append('text')
+    const yLabel = yAxisGroup.append('text')
         .attr('transform', 'rotate(-90)')
         .attr('y', 15 - margin.left)
-        .attr('x', - (height / 2))
+        .attr('x', - (chartHeight / 2))
         .attr('dy', '1em')
         .style('text-anchor', 'middle')
         .style('fill', 'black')
@@ -244,7 +237,24 @@ Promise.all([
         updateGraph(team);
     }
 
+    function setDimensions() {
+        const panelNode = qualPanel.node();
+        const panelWidth = panelNode ? panelNode.getBoundingClientRect().width : 800;
+        chartWidth = Math.max(320, Math.floor(panelWidth - 24));
+        chartHeight = Math.max(280, Math.floor(chartWidth * 0.55));
+        margin.bottom = chartWidth < 560 ? 170 : 140;
+
+        x.range([margin.left, chartWidth - margin.right]);
+        y.range([chartHeight - margin.bottom, margin.top]);
+
+        svg.attr('viewBox', `0 0 ${chartWidth} ${chartHeight}`);
+        xAxisGroup.attr('transform', `translate(0, ${chartHeight - margin.bottom})`);
+        yAxisGroup.attr('transform', `translate(${margin.left}, 0)`);
+        yLabel.attr('x', - (chartHeight / 2));
+    }
+
     function updateGraph(team) {
+        setDimensions();
         const drivers = transformDataForGraph(team);
         const driverNames = drivers.map(d => d.name);
 
@@ -254,94 +264,53 @@ Promise.all([
         const currentTracks = [...new Set(drivers.flatMap(d => d.data.map(r => r.Track)))];
         x.domain(currentTracks);
 
+        const rotateAngle = chartWidth < 600 ? -60 : -45;
         xAxisGroup
-            .transition().duration(500)
+            .transition().duration(300)
             .call(d3.axisBottom(x))
             .selectAll("text")
             .attr("text-anchor", "end")
-            .attr("transform", "rotate(-45)");
+            .attr("transform", `rotate(${rotateAngle})`)
+            .style('font-size', chartWidth < 480 ? '9px' : '11px');
 
         yAxisGroup
-            .transition().duration(500)
+            .transition().duration(300)
             .call(d3.axisLeft(y).tickValues(d3.range(1, 21, 1)));
 
-        linesGroup.selectAll('*').remove();
-        dotsGroup.selectAll('*').remove();
+        // clear previous bars
         barsGroup.selectAll('*').remove();
 
-        if (isBarChart) {
-            const xStep = x.step();
-            const groupWidth = xStep * 0.8;
+        // Render bars only
+        const xStep = x.step();
+        const groupWidth = xStep * 0.8;
 
-            const x1 = d3.scaleBand()
-                .domain(driverNames)
-                .rangeRound([0, groupWidth])
-                .padding(0.1);
+        const x1 = d3.scaleBand()
+            .domain(driverNames)
+            .rangeRound([0, groupWidth])
+            .padding(0.1);
 
-            drivers.forEach(driver => {
-                barsGroup.selectAll(`.bar-${driver.name.replace(/\s/g, '')}`)
-                    .data(driver.data) 
-                    .enter()
-                    .append('rect')
-                    .attr('class', d => `bar-${driver.name.replace(/\s/g, '')}`)
-                    .attr('x', d => x(d.Track) - groupWidth / 2 + x1(driver.name))
-                    .attr('y', d => y(d.Position))
-                    .attr('width', x1.bandwidth())
-                    .attr('height', d => (height - margin.bottom) - y(d.Position)) 
-                    .attr('fill', color(driver.name))
-                    .on("mouseover", (event, d) => {
-                        const positionText = d.isNC ? "NC (Not Classified)" : `Position: ${d.originalPosition}`;
-                        tooltip.html(`<strong>${driver.name}</strong><br>${driver.team}<br>${positionText}`)
-                            .style("visibility", "visible");
-                    })
-                    .on("mousemove", (event) => {
-                        tooltip.style("top", (event.pageY + 10) + "px")
-                            .style("left", (event.pageX + 10) + "px");
-                    })
-                    .on("mouseout", () => tooltip.style("visibility", "hidden"));
-            });
-
-            linesGroup.style('visibility', 'hidden');
-            dotsGroup.style('visibility', 'hidden');
-            barsGroup.style('visibility', 'visible');
-
-        } else {
-            drivers.forEach(driver => {
-                linesGroup.append("path")
-                    .datum(driver.data)
-                    .attr("class", `line-${driver.name.replace(/\s/g, '')}`)
-                    .attr("fill", "none")
-                    .attr("stroke", color(driver.name))
-                    .attr("stroke-width", 2)
-                    .attr("d", line);
-
-                dotsGroup.selectAll(`.dot-${driver.name.replace(/\s/g, '')}`)
-                    .data(driver.data)
-                    .enter()
-                    .append("circle")
-                    .attr("class", `dot-${driver.name.replace(/\s/g, '')}`)
-                    .attr('cx', d => x(d.Track))
-                    .attr('cy', d => y(d.Position))
-                    .attr("r", d => d.isNC ? 5 : 3)
-                    .attr("fill", d => d.isNC ? "black" : color(driver.name))
-                    .attr("stroke", d => d.isNC ? "white" : "none")
-                    .attr("stroke-width", d => d.isNC ? 1 : 0)
-                    .on("mouseover", (event, d) => {
-                        const positionText = d.isNC ? "NC (Not Classified)" : `Position: ${d.originalPosition}`;
-                        tooltip.html(`<strong>${driver.name}</strong><br>${driver.team}<br>${positionText}`)
-                            .style("visibility", "visible");
-                    })
-                    .on("mousemove", (event) => {
-                        tooltip.style("top", (event.pageY + 10) + "px")
-                            .style("left", (event.pageX + 10) + "px");
-                    })
-                    .on("mouseout", () => tooltip.style("visibility", "hidden"));
-            });
-
-            linesGroup.style('visibility', 'visible');
-            dotsGroup.style('visibility', 'visible');
-            barsGroup.style('visibility', 'hidden');
-        }
+        drivers.forEach(driver => {
+            barsGroup.selectAll(`.bar-${driver.name.replace(/\s/g, '')}`)
+                .data(driver.data)
+                .enter()
+                .append('rect')
+                .attr('class', d => `bar-${driver.name.replace(/\s/g, '')}`)
+                .attr('x', d => x(d.Track) - groupWidth / 2 + x1(driver.name))
+                .attr('y', d => y(d.Position))
+                .attr('width', x1.bandwidth())
+                .attr('height', d => (chartHeight - margin.bottom) - y(d.Position))
+                .attr('fill', color(driver.name))
+                .on("mouseover", (event, d) => {
+                    const positionText = d.isNC ? "NC (Not Classified)" : `Position: ${d.originalPosition}`;
+                    tooltip.html(`<strong>${driver.name}</strong><br>${driver.team}<br>${positionText}`)
+                        .style("visibility", "visible");
+                })
+                .on("mousemove", (event) => {
+                    tooltip.style("top", (event.pageY + 10) + "px")
+                        .style("left", (event.pageX + 10) + "px");
+                })
+                .on("mouseout", () => tooltip.style("visibility", "hidden"));
+        });
 
         updateTeamSelectorPosition();
     }
@@ -349,9 +318,13 @@ Promise.all([
     createYearSelect();
     createTeamSelect();
     createGraph(currentTeam);
-    createViewToggle();
 
-    window.addEventListener('resize', updateTeamSelectorPosition);
+    let resizeTimer;
+    window.addEventListener('resize', () => {
+        updateTeamSelectorPosition();
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => updateGraph(currentTeam), 100);
+    });
 })
 .catch(error => {
     console.error('Error loading the data:', error);
