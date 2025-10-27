@@ -134,10 +134,7 @@ Promise.all([
 
       g.selectAll("*").remove();
 
-      g.attr(
-        "transform",
-        `translate(${chartWidth / 2}, ${chartHeight / 2})`
-      );
+      g.attr("transform", `translate(${chartWidth / 2}, ${chartHeight / 2})`);
 
       const pie = d3.pie().value((d) => d.votes);
       const arc = d3.arc().innerRadius(0).outerRadius(radius);
@@ -156,9 +153,11 @@ Promise.all([
         .on("mouseover", (event, d) => {
           tooltip
             .html(
-              `<strong>${d.data.driver}</strong><br>Votes: ${d.data.votes.toFixed(1)}%`
+              `<strong>${
+                d.data.driver
+              }</strong><br>Votes: ${d.data.votes.toFixed(1)}%`
             )
-            .style("visibility", "visible")
+            .style("visibility", "visible");
         })
         .on("mousemove", (event) => {
           tooltip
