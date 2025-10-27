@@ -2,12 +2,36 @@ Promise.all([
   d3.csv("./data/Formula1_2022season_driverOfTheDayVotes.csv"),
   d3.csv("./data/Formula1_2023season_driverOfTheDayVotes.csv"),
   d3.csv("./data/Formula1_2024season_driverOfTheDayVotes.csv"),
+  d3.csv("./data/Formula1_2022season_drivers.csv"),
+  d3.csv("./data/Formula1_2023season_drivers.csv"),
+  d3.csv("./data/Formula1_2024season_drivers.csv"),
 ])
-  .then(([dotd22, dotd23, dotd24]) => {
+  .then(([dotd22, dotd23, dotd24, drivers22, drivers23, drivers24]) => {
     const datasets = {
       2022: dotd22,
       2023: dotd23,
       2024: dotd24,
+    };
+
+    const driverDatasets = {
+      2022: drivers22,
+      2023: drivers23,
+      2024: drivers24,
+    };
+
+    // F1 Team Colors (official colors)
+    const teamColors = {
+      "Red Bull Racing": "#0600EF",
+      Mercedes: "#00D2BE",
+      Ferrari: "#DC0000",
+      McLaren: "#FF8700",
+      "Aston Martin": "#006C3E",
+      Alpine: "#0082FA",
+      "Alfa Romeo": "#900000",
+      Williams: "#005AFF",
+      Haas: "#FFFFFF",
+      AlphaTauri: "#2B4562",
+      Others: "#999999",
     };
 
     let currentYear = 2022;
@@ -84,7 +108,61 @@ Promise.all([
       .style("border-radius", "4px")
       .style("font-size", "12px");
 
-    const color = d3.scaleOrdinal(d3.schemeCategory10);
+    // Build driver to team mapping
+    let driverTeamMap = {};
+
+    function buildDriverTeamMap(year) {
+      driverTeamMap = {};
+      const ds = driverDatasets[year];
+      if (ds) {
+        ds.forEach((row) => {
+          if (row["Driver"] && row["Team"]) {
+            driverTeamMap[row["Driver"]] = row["Team"];
+          }
+        });
+      }
+    }
+
+    // Darken a color by a given percentage
+    function darkenColor(color, percent) {
+      const num = parseInt(color.replace("#", ""), 16);
+      const amt = Math.round(2.55 * percent);
+      const R = Math.max(0, (num >> 16) - amt);
+      const G = Math.max(0, ((num >> 8) & 0x00ff) - amt);
+      const B = Math.max(0, (num & 0x0000ff) - amt);
+      return (
+        "#" + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1)
+      );
+    }
+
+    function getTeamColor(driver, allData) {
+      if (driver === "Others") {
+        return teamColors["Others"];
+      }
+      const team = driverTeamMap[driver];
+      const baseColor = teamColors[team] || "#999999";
+
+      // Check if there are other drivers from the same team
+      if (allData) {
+        const teamDrivers = allData.filter((d) => {
+          const dTeam = driverTeamMap[d.driver];
+          return dTeam === team && d.driver !== "Others";
+        });
+
+        // If multiple drivers from same team, darken based on votes rank within the team
+        if (teamDrivers.length > 1) {
+          teamDrivers.sort((a, b) => b.votes - a.votes);
+          const driverIndex = teamDrivers.findIndex((d) => d.driver === driver);
+          // Invert: the one with less votes gets higher index, so they get darkened more
+          const darkenAmount = 20 * (teamDrivers.length - 1 - driverIndex);
+          if (darkenAmount > 0) {
+            return darkenColor(baseColor, darkenAmount);
+          }
+        }
+      }
+
+      return baseColor;
+    }
 
     function setDimensions() {
       chartWidth = 546;
@@ -119,26 +197,35 @@ Promise.all([
         .sort((a, b) => b.votes - a.votes);
 
       // Group smaller drivers into "Others" category to reduce clutter
-      const topN = 8;
-      if (data.length > topN) {
-        const top = data.slice(0, topN);
-        const others = data.slice(topN);
-        const othersVotes = others.reduce((sum, d) => sum + d.votes, 0);
+      // Keep individual drivers that have at least 3% of votes, rest goes to Others
+      const minThreshold = 3;
+      let topDrivers = [];
+      let othersVotes = 0;
 
-        data = [
-          ...top,
-          {
-            driver: "Others",
-            votes: othersVotes,
-          },
-        ];
+      data.forEach((d) => {
+        if (d.votes >= minThreshold) {
+          topDrivers.push(d);
+        } else {
+          othersVotes += d.votes;
+        }
+      });
+
+      if (othersVotes > 0) {
+        topDrivers.push({
+          driver: "Others",
+          votes: othersVotes,
+        });
       }
+
+      // Final sort by votes descending
+      data = topDrivers.sort((a, b) => b.votes - a.votes);
 
       return data;
     }
 
     function updateGraph() {
       setDimensions();
+      buildDriverTeamMap(currentYear);
 
       const data = aggregateDriverOfTheDay(currentYear);
       const radius = Math.min(chartWidth, chartHeight) / 2 - 80;
@@ -161,7 +248,7 @@ Promise.all([
       arcs
         .append("path")
         .attr("d", arc)
-        .attr("fill", (d) => color(d.data.driver))
+        .attr("fill", (d) => getTeamColor(d.data.driver, data))
         .on("mouseover", (event, d) => {
           tooltip
             .html(
@@ -192,7 +279,7 @@ Promise.all([
         .attr("x", chartWidth - 140)
         .attr("width", 15)
         .attr("height", 15)
-        .attr("fill", (d) => color(d.driver));
+        .attr("fill", (d) => getTeamColor(d.driver, data));
 
       legend
         .append("text")
