@@ -23,8 +23,8 @@ Promise.all([
     let currentTeam = "Ferrari";
 
     // Responsive dimensions
-    let chartWidth = 800;
-    let chartHeight = 400;
+  let chartWidth = 800;
+  let chartHeight = 450;
     let margin = { top: 40, right: 24, bottom: 140, left: 48 };
 
     const qualPanel = d3.select("#qualifying-panel");
@@ -267,8 +267,9 @@ Promise.all([
       const panelWidth = panelNode
         ? panelNode.getBoundingClientRect().width
         : 800;
-      chartWidth = Math.max(320, Math.floor(panelWidth - 24));
-      chartHeight = Math.max(280, Math.floor(chartWidth * 0.55));
+  chartWidth = Math.max(320, Math.floor(panelWidth - 24));
+  // Height scales with width; add extra vertical space for dense y ticks
+  chartHeight = Math.max(360, Math.floor(chartWidth * 0.7));
       margin.bottom = chartWidth < 560 ? 170 : 140;
 
       x.range([margin.left, chartWidth - margin.right]);
@@ -306,10 +307,16 @@ Promise.all([
         .attr("transform", `rotate(${rotateAngle})`)
         .style("font-size", chartWidth < 480 ? "9px" : "11px");
 
+      const tickStep = chartHeight >= 380 ? 1 : 2;
+      const tickValues = d3.range(1, 21, tickStep);
+      if (tickValues[tickValues.length - 1] !== 20) {
+        tickValues.push(20);
+      }
+
       yAxisGroup
         .transition()
         .duration(300)
-        .call(d3.axisLeft(y).tickValues(d3.range(1, 21, 1)));
+        .call(d3.axisLeft(y).tickValues(tickValues));
 
       // clear previous bars
       barsGroup.selectAll("*").remove();

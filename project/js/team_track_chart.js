@@ -26,7 +26,7 @@
 
       // Dimensions will be computed from container for responsiveness
       let chartWidth = 800;
-      let chartHeight = 400;
+      let chartHeight = 450;
       let margin = { top: 40, right: 24, bottom: 140, left: 48 };
 
       const teamPanel = d3.select("#team-panel");
@@ -242,8 +242,8 @@
           ? panelNode.getBoundingClientRect().width
           : 800;
         chartWidth = Math.max(320, Math.floor(panelWidth - 24));
-        // Height scales with width; leave room for axis labels
-        chartHeight = Math.max(280, Math.floor(chartWidth * 0.55));
+        // Height scales with width; add extra vertical space for crowded ticks
+        chartHeight = Math.max(360, Math.floor(chartWidth * 0.7));
 
         // Adjust bottom margin slightly for narrow screens (more rotation on ticks)
         margin.bottom = chartWidth < 560 ? 170 : 140;
@@ -294,10 +294,17 @@
           .attr("transform", `rotate(${rotateAngle})`)
           .style("font-size", chartWidth < 480 ? "9px" : "11px");
 
+        // Keep the grid detailed while avoiding unreadable overlap on smaller views
+        const tickStep = chartHeight >= 380 ? 1 : 2;
+        const tickValues = d3.range(1, 21, tickStep);
+        if (tickValues[tickValues.length - 1] !== 20) {
+          tickValues.push(20);
+        }
+
         yAxisGroup
           .transition()
           .duration(300)
-          .call(d3.axisLeft(y).tickValues(d3.range(1, 21, 1)));
+          .call(d3.axisLeft(y).tickValues(tickValues));
 
         // clear any previous bars
         barsGroup.selectAll("*").remove();
