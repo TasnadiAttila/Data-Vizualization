@@ -111,12 +111,30 @@ Promise.all([
       // Calculate total votes and normalize to 100%
       const totalVotes = Object.values(driverVotes).reduce((a, b) => a + b, 0);
 
-      return Object.entries(driverVotes)
+      let data = Object.entries(driverVotes)
         .map(([driver, votes]) => ({
           driver,
           votes: (votes / totalVotes) * 100, // Normalize to 0-100 range
         }))
         .sort((a, b) => b.votes - a.votes);
+
+      // Group smaller drivers into "Others" category to reduce clutter
+      const topN = 8;
+      if (data.length > topN) {
+        const top = data.slice(0, topN);
+        const others = data.slice(topN);
+        const othersVotes = others.reduce((sum, d) => sum + d.votes, 0);
+
+        data = [
+          ...top,
+          {
+            driver: "Others",
+            votes: othersVotes,
+          },
+        ];
+      }
+
+      return data;
     }
 
     function updateGraph() {
@@ -126,6 +144,7 @@ Promise.all([
       const radius = Math.min(chartWidth, chartHeight) / 2 - 80;
 
       g.selectAll("*").remove();
+      svg.selectAll(".legend").remove();
 
       g.attr("transform", `translate(${chartWidth / 2}, ${chartHeight / 2})`);
 
@@ -159,34 +178,60 @@ Promise.all([
         })
         .on("mouseout", () => tooltip.style("visibility", "hidden"));
 
-      // Add labels with names and percentages on the outside
+      // Add legend
+      const legend = svg
+        .selectAll(".legend")
+        .data(data)
+        .enter()
+        .append("g")
+        .attr("class", "legend")
+        .attr("transform", (d, i) => `translate(0, ${i * 20})`);
+
+      legend
+        .append("rect")
+        .attr("x", chartWidth - 140)
+        .attr("width", 15)
+        .attr("height", 15)
+        .attr("fill", (d) => color(d.driver));
+
+      legend
+        .append("text")
+        .attr("x", chartWidth - 120)
+        .attr("y", 12)
+        .style("font-size", "11px")
+        .style("font-weight", "normal")
+        .text((d) => `${d.driver}: ${d.votes.toFixed(1)}%`);
+
+      // Add labels with names and percentages on the outside (only for larger segments)
       arcs
+        .filter((d) => d.data.votes > 5) // Only show labels for segments > 5%
         .append("text")
         .attr("transform", (d) => {
           const angle = (d.startAngle + d.endAngle) / 2;
-          const x = Math.cos(angle - Math.PI / 2) * (radius + 50);
-          const y = Math.sin(angle - Math.PI / 2) * (radius + 50);
+          const x = Math.cos(angle - Math.PI / 2) * (radius + 20);
+          const y = Math.sin(angle - Math.PI / 2) * (radius + 20);
           return `translate(${x}, ${y})`;
         })
         .attr("text-anchor", "middle")
-        .style("font-size", "12px")
+        .style("font-size", "10px")
         .style("font-weight", "bold")
         .style("fill", "black")
         .style("pointer-events", "none")
-        .text((d) => `${d.data.driver}\n${d.data.votes.toFixed(1)}%`);
+        .text((d) => `${d.data.votes.toFixed(1)}%`);
 
-      // Add lines from pie to labels for better visibility
+      // Add lines from pie to labels for better visibility (only for larger segments)
       arcs
+        .filter((d) => d.data.votes > 5)
         .append("line")
         .attr("x1", (d) => arc.centroid(d)[0])
         .attr("y1", (d) => arc.centroid(d)[1])
         .attr("x2", (d) => {
           const angle = (d.startAngle + d.endAngle) / 2;
-          return Math.cos(angle - Math.PI / 2) * (radius + 45);
+          return Math.cos(angle - Math.PI / 2) * (radius + 15);
         })
         .attr("y2", (d) => {
           const angle = (d.startAngle + d.endAngle) / 2;
-          return Math.sin(angle - Math.PI / 2) * (radius + 45);
+          return Math.sin(angle - Math.PI / 2) * (radius + 15);
         })
         .style("stroke", "black")
         .style("stroke-width", "1px")
