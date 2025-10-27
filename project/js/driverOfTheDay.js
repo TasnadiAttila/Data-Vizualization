@@ -23,7 +23,7 @@ Promise.all([
       .append("label")
       .attr("for", "svg")
       .style("margin-right", "8px")
-      .text("Driver of the Day - 1st Place Votes");
+      .text("Driver of the Day Votes Distribution");
 
     function createYearSelect() {
       const yearSelectContainer = dotdPanel
