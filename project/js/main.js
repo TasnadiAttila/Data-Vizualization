@@ -23,8 +23,8 @@ Promise.all([
     let currentTeam = "Ferrari";
 
     // Responsive dimensions
-  let chartWidth = 800;
-  let chartHeight = 450;
+    let chartWidth = 800;
+    let chartHeight = 450;
     let margin = { top: 40, right: 24, bottom: 140, left: 48 };
 
     const qualPanel = d3.select("#qualifying-panel");
@@ -267,9 +267,9 @@ Promise.all([
       const panelWidth = panelNode
         ? panelNode.getBoundingClientRect().width
         : 800;
-  chartWidth = Math.max(320, Math.floor(panelWidth - 24));
-  // Height scales with width; add extra vertical space for dense y ticks
-  chartHeight = Math.max(360, Math.floor(chartWidth * 0.7));
+      chartWidth = Math.max(320, Math.floor(panelWidth - 24));
+      // Height scales with width; add extra vertical space for dense y ticks
+      chartHeight = Math.max(360, Math.floor(chartWidth * 0.7));
       margin.bottom = chartWidth < 560 ? 170 : 140;
 
       x.range([margin.left, chartWidth - margin.right]);
